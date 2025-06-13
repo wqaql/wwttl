@@ -1,5 +1,6 @@
 // deno run --allow-net main.ts
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { decode as base64Decode } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 
 const PORT = 8000;
 
@@ -102,11 +103,44 @@ async function handleRequest(req: Request): Promise<Response> {
       pathname.replace("/wtr-v3", "");
     return fetchProxy(req, target);
   }
+
+
   // 5. 图片代理 /imgproxy/*
   if (pathname.startsWith("/img/")) {
     // 获取真实图片 URL，注意解码
     const encodedUrl = pathname.replace("/img/", "");
-    const decodedUrl = decodeURIComponent(encodedUrl);
+
+    let decodedUrl: string | null = null;
+
+    // 1. 先尝试 decodeURIComponent
+    try {
+      const url = decodeURIComponent(encodedUrl);
+      if (url.startsWith("http://") || url.startsWith("https://")) {
+        decodedUrl = url;
+      }
+    } catch {
+      // 忽略错误
+    }
+
+    // 2. 如果不是合法 URL，再尝试 Base64 解码
+    if (!decodedUrl) {
+      try {
+        const base64Decoded = new TextDecoder().decode(base64Decode(encodedUrl.substring(2)));
+        if (
+          base64Decoded.startsWith("http://") ||
+          base64Decoded.startsWith("https://")
+        ) {
+          decodedUrl = base64Decoded;
+        }
+      } catch {
+        // 仍无效
+      }
+    }
+
+    if (!decodedUrl) {
+      return new Response("Invalid image URL", { status: 400 });
+    }
+
 
     const res = await fetch(decodedUrl, {
       headers: {
