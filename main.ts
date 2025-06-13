@@ -62,11 +62,16 @@ async function handleRequest(req: Request): Promise<Response> {
     const times = [];
     for (let i = data.value.length - 1; i >= 0; i--) {
       const item = data.value[i];
-      const time = item.date[0].substring(0, 6);
-      times.push(item.time.map((m) => time + m + "00"));
-      imageList.push(item.value.map((v) => imageUrl + v));
+      const time = item.date[0].substring(0, 8);
+      times.push(...item.time.reverse().map((m) => time + m ));
+      imageList.push(...item.path.reverse().map((v) => imageUrl + v));
     }
-
+    const stime = Number(data["stime"].replace(/\D/g, ""));
+    const type = []
+    for (let s in times){
+      const time = Number(times[s].replace(/\D/g, ""));
+      type.push(stime>time?1:2)
+    }
     const dataParams = {
       rain_dl: {
         time: {
@@ -82,6 +87,7 @@ async function handleRequest(req: Request): Promise<Response> {
         result: {
           picture_url: imageList,
           forecast_time_list: times,
+          type:type
         },
         pic_type: "precipitation",
       },
