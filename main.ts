@@ -45,9 +45,9 @@ async function handleRequest(req: Request): Promise<Response> {
   }
 
   // 3. 特别处理 /imgjson/* 返回加工后的降水图数据
-  if (pathname.startsWith("/imgjson/")) {
+  if (pathname.startsWith("/duanlin/")) {
     const baseUrl = "https://img.weather.com.cn";
-    const target = baseUrl + pathname.replace("/imgjson", "");
+    const target = baseUrl + pathname.replace("/duanlin", "");
     const res = await fetch(target, {
       headers: {
         "User-Agent": iPhoneUserAgent,
@@ -101,6 +101,29 @@ async function handleRequest(req: Request): Promise<Response> {
       "https://weatherapi.market.xiaomi.com/wtr-v3" +
       pathname.replace("/wtr-v3", "");
     return fetchProxy(req, target);
+  }
+  // 5. 图片代理 /imgproxy/*
+  if (pathname.startsWith("/img/")) {
+    // 获取真实图片 URL，注意解码
+    const encodedUrl = pathname.replace("/img/", "");
+    const decodedUrl = decodeURIComponent(encodedUrl);
+
+    const res = await fetch(decodedUrl, {
+      headers: {
+        "User-Agent": iPhoneUserAgent,
+        "Referer": "https://m.weathercn.com/",
+      },
+    });
+
+    const contentType = res.headers.get("content-type") || "image/png";
+    const imageBuffer = await res.arrayBuffer();
+
+    return new Response(imageBuffer, {
+      status: res.status,
+      headers: {
+        "content-type": contentType,
+      },
+    });
   }
 
   return new Response("Not Found", { status: 404 });
