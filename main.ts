@@ -145,7 +145,7 @@ async function handleRequest(req: Request): Promise<Response> {
     const res = await fetch(decodedUrl, {
       headers: {
         "User-Agent": iPhoneUserAgent,
-        "Referer": "https://m.weathercn.com/",
+        "accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
       },
     });
 
