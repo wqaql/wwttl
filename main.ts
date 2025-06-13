@@ -1,0 +1,135 @@
+// deno run --allow-net main.ts
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+
+const PORT = 8000;
+
+// 特定 user-agent，用于模拟手机浏览器访问
+const iPhoneUserAgent =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1";
+
+async function handleRequest(req: Request): Promise<Response> {
+  const url = new URL(req.url);
+  const pathname = url.pathname;
+
+  // 1. 获取并解析天气数据
+  if (pathname === "/weathercn-data") {
+    try {
+      const res = await fetch("https://m.weathercn.com/weatherMap.do?partner=1000001071_hfaw&language=zh-cn&id=2332685&p_source=&p_type=jump&seadId=&cpoikey=", {
+        headers: {
+          "User-Agent": iPhoneUserAgent,
+          "Host": "m.weathercn.com",
+        },
+      });
+      const html = await res.text();
+      const match = html.match(/let\s+DATA\s*=\s*(\{[\s\S]+?\});/);
+
+      if (!match) {
+        return new Response("DATA not found", { status: 500 });
+      }
+
+      const DATA = new Function(`${match[0]}; return DATA;`)(); // ⚠️ 请确保来源可信
+
+      return Response.json(DATA);
+    } catch (err) {
+      return new Response("Error fetching weather data: " + err.message, {
+        status: 500,
+      });
+    }
+  }
+
+  // 2. 代理请求：/mpf/*
+  if (pathname.startsWith("/mpf/")) {
+    const target =
+      "https://mpf.weather.com.cn" + pathname.replace("/mpf", "");
+    return fetchProxy(req, target);
+  }
+
+  // 3. 特别处理 /imgjson/* 返回加工后的降水图数据
+  if (pathname.startsWith("/imgjson/")) {
+    const baseUrl = "https://img.weather.com.cn";
+    const target = baseUrl + pathname.replace("/imgjson", "");
+    const res = await fetch(target, {
+      headers: {
+        "User-Agent": iPhoneUserAgent,
+        "Referer": "https://m.weathercn.com/",
+        "Host": "weather-img.weathercn.com",
+      },
+    });
+    const html = await res.text();
+    const data = JSON.parse(html.substring(html.indexOf("{")));
+    const imageUrl = baseUrl + "/mpfv3/";
+    const imageList = [];
+    const times = [];
+    for (let i = data.value.length - 1; i >= 0; i--) {
+      const item = data.value[i];
+      const time = item.date[0].substring(0, 6);
+      times.push(item.time.map((m) => time + m + "00"));
+      imageList.push(item.value.map((v) => imageUrl + v));
+    }
+
+    const dataParams = {
+      rain_dl: {
+        time: {
+          obstime: data["obstime"],
+          stime: data["stime"],
+        },
+        pics_location_range: {
+          bottom_lat: 10.160640206803123,
+          left_lon: 73.44630749105424,
+          top_lat: 53.560640206803123,
+          right_lon: 135.09,
+        },
+        result: {
+          picture_url: imageList,
+          forecast_time_list: times,
+        },
+        pic_type: "precipitation",
+      },
+    };
+    return Response.json(dataParams);
+  }
+
+  // 4. 小米代理
+  if (pathname.startsWith("/wtr-v3/")) {
+    const target =
+      "https://weatherapi.market.xiaomi.com/wtr-v3" +
+      pathname.replace("/wtr-v3", "");
+    return fetchProxy(req, target);
+  }
+
+  return new Response("Not Found", { status: 404 });
+}
+
+// 通用代理函数，保留请求方法和部分 headers
+async function fetchProxy(req: Request, target: string): Promise<Response> {
+  const reqHeaders = new Headers(req.headers);
+
+  // 强制设置 User-Agent 可选
+  reqHeaders.set("User-Agent", iPhoneUserAgent);
+
+  // 设置 Host 为目标站点（有时可省略）
+  reqHeaders.set("Host", new URL(target).host);
+
+  // 移除部分不应传给目标服务器的头
+  reqHeaders.delete("connection");
+  reqHeaders.delete("content-length");
+  reqHeaders.delete("accept-encoding");
+
+  const fetchInit: RequestInit = {
+    method: req.method,
+    headers: reqHeaders,
+  };
+
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    fetchInit.body = await req.blob(); // 保留 POST/PUT body
+  }
+
+  const res = await fetch(target, fetchInit);
+  return new Response(res.body, {
+    status: res.status,
+    headers: res.headers,
+  });
+}
+
+console.log(`✅ Server running on http://localhost:${PORT}`);
+serve(handleRequest, { port: PORT });
