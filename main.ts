@@ -63,7 +63,7 @@ async function handleRequest(req: Request): Promise<Response> {
     const times:  string[] = [];
     for (let i = data.value.length - 1; i >= 0; i--) {
       const item = data.value[i];
-      const time = String(item.date[0]);
+      const time = String(JSON.stringify(item.date));
       const time1 = item.time.reverse()
       times.push(...time1.map(m => [String(time) , String(m)].join("-") ));
       imageList.push(...item.path.reverse().map((v) => imageUrl + v));
