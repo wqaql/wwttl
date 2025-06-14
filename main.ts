@@ -160,6 +160,22 @@ async function handleRequest(req: Request): Promise<Response> {
     });
   }
 
+  //  6. d3代理
+  if (pathname.startsWith("/d3/")) {
+    const target =
+        "https://d3.weather.com.cn" +
+        pathname.replace("/d3", "");
+    return fetchProxy(req, target);
+  }
+
+  //  6. d4代理
+  if (pathname.startsWith("/d4/")) {
+    const target =
+        "https://d4.weather.com.cn" +
+        pathname.replace("/d4", "");
+    return fetchProxy(req, target);
+  }
+
   return new Response("Not Found", { status: 404 });
 }
 
