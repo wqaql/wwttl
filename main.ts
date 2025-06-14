@@ -162,6 +162,7 @@ async function handleRequest(req: Request): Promise<Response> {
 
   //  6. d3代理
   if (pathname.startsWith("/d3/")) {
+    console.log(pathname)
     const target =
         "https://d3.weather.com.cn" +
         pathname.replace("/d3", "");
