@@ -48,7 +48,8 @@ async function handleRequest(req: Request): Promise<Response> {
   // 3. 特别处理 /imgjson/* 返回加工后的降水图数据
   if (pathname.startsWith("/duanlin/")) {
     const baseUrl = "https://img.weather.com.cn";
-    const target = baseUrl + pathname.replace("/duanlin", "");
+    const target =
+        baseUrl + pathname.replace("/duanlin", "/mpfv3");
     const res = await fetch(target, {
       headers: {
         "User-Agent": iPhoneUserAgent,
@@ -60,11 +61,11 @@ async function handleRequest(req: Request): Promise<Response> {
     const data = JSON.parse(html.substring(html.indexOf("{")));
     const imageUrl = baseUrl + "/mpfv3/";
     const imageList = [];
-    const times:  string[] = [];
+    const times = [];
     for (let i = data.value.length - 1; i >= 0; i--) {
       const item = data.value[i];
-      const time1 = item.time.reverse()
-      times.push(...time1.map(m => [...item.date , String(m).substring(2)].join("") ));
+      const time = item.date[0].substring(0, 8);
+      times.push(...item.time.reverse().map(m => time +""+ m ));
       imageList.push(...item.path.reverse().map((v) => imageUrl + v));
     }
     const stime = Number(data["stime"].replace(/\D/g, ""));
