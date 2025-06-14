@@ -10,7 +10,7 @@ const iPhoneUserAgent =
 
 async function handleRequest(req: Request): Promise<Response> {
   const url = new URL(req.url);
-  const pathname = url.pathname;
+  const pathname = url.pathname + url.search;
 
   // 1. 获取并解析天气数据
   if (pathname === "/weathercn-data") {
@@ -162,7 +162,6 @@ async function handleRequest(req: Request): Promise<Response> {
 
   //  6. d3代理
   if (pathname.startsWith("/d3/")) {
-    console.log(pathname)
     const target =
         "https://d3.weather.com.cn" +
         pathname.replace("/d3", "");
