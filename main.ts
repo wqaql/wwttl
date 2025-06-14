@@ -141,7 +141,7 @@ async function handleRequest(req: Request): Promise<Response> {
       return new Response("Invalid image URL", { status: 400 });
     }
 
-
+    decodedUrl = urlPngToWebp(decodedUrl)
     const res = await fetch(decodedUrl, {
       headers: {
         "User-Agent": iPhoneUserAgent,
@@ -209,6 +209,11 @@ async function fetchProxy(req: Request, target: string): Promise<Response> {
     status: res.status,
     headers: res.headers,
   });
+}
+function urlPngToWebp(url: string) {
+  if (url.startsWith("/webp") && url.endsWith(".png"))
+    return url.replace(/\.png$/, ".webp");
+  return url;
 }
 
 console.log(`✅ Server running on http://localhost:${PORT}`);
