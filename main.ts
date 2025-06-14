@@ -1,6 +1,6 @@
 // deno run --allow-net main.ts
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { decode as base64Decode } from "https://deno.land/std@0.224.0/encoding/base64.ts";
+import { base64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 
 const PORT = 8000;
 
@@ -125,7 +125,7 @@ async function handleRequest(req: Request): Promise<Response> {
     // 2. 如果不是合法 URL，再尝试 Base64 解码
     if (!decodedUrl) {
       try {
-        const base64Decoded = new TextDecoder().decode(base64Decode(encodedUrl.substring(2)));
+        const base64Decoded = new TextDecoder().decode(base64.decode(encodedUrl.substring(2)));
         if (
           base64Decoded.startsWith("http://") ||
           base64Decoded.startsWith("https://")
