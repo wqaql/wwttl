@@ -64,7 +64,7 @@ async function handleRequest(req: Request): Promise<Response> {
     for (let i = data.value.length - 1; i >= 0; i--) {
       const item = data.value[i];
       const time = item.date[0].substring(0, 8);
-      times.push(...item.time.reverse().map((m) => time + m ));
+      times.push(...item.time.reverse().map(m => time +""+ m ));
       imageList.push(...item.path.reverse().map((v) => imageUrl + v));
     }
     const stime = Number(data["stime"].replace(/\D/g, ""));
