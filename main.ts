@@ -63,7 +63,7 @@ async function handleRequest(req: Request): Promise<Response> {
     const times:  string[] = [];
     for (let i = data.value.length - 1; i >= 0; i--) {
       const item = data.value[i];
-      const time = String(item.date[0].substring(0, 8));
+      const time = String(item.date[0]).substring(0, 8);
       console.log(time,JSON.stringify(item.date))
       console.log(JSON.stringify(item.time))
       times.push(...item.time.reverse().map(m => String(time) +""+ String(m) ));
