@@ -181,6 +181,7 @@ async function handleRequest(req: Request): Promise<Response> {
 
 // 通用代理函数，保留请求方法和部分 headers
 async function fetchProxy(req: Request, target: string): Promise<Response> {
+  console.log("fetchProxy", req.method, req.url, target);
   const reqHeaders = new Headers(req.headers);
 
   // 强制设置 User-Agent 可选
