@@ -211,7 +211,7 @@ async function fetchProxy(req: Request, target: string): Promise<Response> {
   });
 }
 function urlPngToWebp(url: string) {
-  if (url.startsWith("/webp") && url.endsWith(".png"))
+  if (url.includes("/webp/") && url.endsWith(".png"))
     return url.replace(/\.png$/, ".webp");
   return url;
 }
