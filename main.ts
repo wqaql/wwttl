@@ -63,8 +63,11 @@ async function handleRequest(req: Request): Promise<Response> {
     const times:  string[] = [];
     for (let i = data.value.length - 1; i >= 0; i--) {
       const item = data.value[i];
-      const time = mySubstring(String(item.date[0]),0,8);
-      times.push(...item.time.reverse().map(m => [String(time) , String(m)].join("") ));
+      const time = String(item.date[0]);
+      const time1 = item.time.reverse()
+      for (let j = 0; j < time1.length; j++) {
+          times.push(time+""+String(time1[j]).substring(2))
+      }
       imageList.push(...item.path.reverse().map((v) => imageUrl + v));
     }
     console.log("[Image List]", JSON.stringify(times));
