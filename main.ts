@@ -49,7 +49,6 @@ async function handleRequest(req: Request): Promise<Response> {
   if (pathname.startsWith("/duanlin/")) {
     const baseUrl = "https://img.weather.com.cn";
     const target = baseUrl + pathname.replace("/duanlin", "");
-
     const res = await fetch(target, {
       headers: {
         "User-Agent": iPhoneUserAgent,
@@ -57,29 +56,24 @@ async function handleRequest(req: Request): Promise<Response> {
         "Host": "weather-img.weathercn.com",
       },
     });
-
     const html = await res.text();
     const data = JSON.parse(html.substring(html.indexOf("{")));
-
     const imageUrl = baseUrl + "/mpfv3/";
-    const imageList: string[] = [];
-    const times: string[] = [];
-
-    // 解析图像时间列表和路径
+    const imageList = [];
+    const times:  string[] = [];
     for (let i = data.value.length - 1; i >= 0; i--) {
       const item = data.value[i];
-      const datePrefix = item.date[0].substring(0, 8); // YYYYMMDD，只取前8位
-      const reversedTimes = item.time.reverse().map(m => datePrefix + m.padStart(4, "0")); // HHmm 补齐为4位
-      const reversedPaths = item.path.reverse().map(v => imageUrl + v);
-
-      times.push(...reversedTimes);
-      imageList.push(...reversedPaths);
+      const time = item.date[0].substring(0, 8);
+      times.push(...item.time.reverse().map(m => String(time) +""+ String(m) ));
+      imageList.push(...item.path.reverse().map((v) => imageUrl + v));
     }
-
-    // 处理类型判断：1 表示实况，2 表示预报
-    const stime = data["stime"].replace(/\D/g, ""); // 格式化为数字串：YYYYMMDDHHmm
-    const type = times.map(t => stime > t ? 1 : 2); // 直接字符串比较，不用转 Number，避免精度丢失
-
+    console.log("[Image List]", JSON.stringify(times));
+    const stime = Number(data["stime"].replace(/\D/g, ""));
+    const type = []
+    // for (let s in times){
+    //   const time = Number(times[s].replace(/\D/g, ""));
+    //   type.push(stime>time?1:2)
+    // }
     const dataParams = {
       rain_dl: {
         time: {
@@ -95,12 +89,11 @@ async function handleRequest(req: Request): Promise<Response> {
         result: {
           picture_url: imageList,
           forecast_time_list: times,
-          type: type,
+          type:type
         },
         pic_type: "precipitation",
       },
     };
-
     return Response.json(dataParams);
   }
 
