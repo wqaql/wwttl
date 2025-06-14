@@ -13,7 +13,7 @@ async function handleRequest(req: Request): Promise<Response> {
   const pathname = url.pathname + url.search;
 
   // 1. 获取并解析天气数据
-  if (pathname === "/weathercn-data") {
+  if (pathname === "/weathercn-data/") {
     try {
       const res = await fetch("https://m.weathercn.com/weatherMap.do?partner=1000001071_hfaw&language=zh-cn&id=2332685&p_source=&p_type=jump&seadId=&cpoikey=", {
         headers: {
