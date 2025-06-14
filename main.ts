@@ -93,6 +93,7 @@ async function handleRequest(req: Request): Promise<Response> {
         pic_type: "precipitation",
       },
     };
+    console.log(JSON.stringify(dataParams))
     return Response.json(dataParams);
   }
 
