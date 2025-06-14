@@ -63,12 +63,10 @@ async function handleRequest(req: Request): Promise<Response> {
     const times:  string[] = [];
     for (let i = data.value.length - 1; i >= 0; i--) {
       const item = data.value[i];
-      const time = String(JSON.stringify(item.date));
       const time1 = item.time.reverse()
-      times.push(...time1.map(m => [String(time) , String(m)].join("-") ));
+      times.push(...time1.map(m => [String(item.date) , String(m).substring(2)].join("") ));
       imageList.push(...item.path.reverse().map((v) => imageUrl + v));
     }
-    console.log("[Image List]", JSON.stringify(times));
     const stime = Number(data["stime"].replace(/\D/g, ""));
     const type = []
     for (let s in times){
