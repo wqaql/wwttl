@@ -63,8 +63,8 @@ async function handleRequest(req: Request): Promise<Response> {
     const times:  string[] = [];
     for (let i = data.value.length - 1; i >= 0; i--) {
       const item = data.value[i];
-      const time = String(item.date[0]);
-      times.push(...item.time.reverse().map(m => String(time) +""+ String(m).substring(2) ));
+      const time = mySubstring(String(item.date[0]),0,8);
+      times.push(...item.time.reverse().map(m => [String(time) , String(m)].join("") ));
       imageList.push(...item.path.reverse().map((v) => imageUrl + v));
     }
     console.log("[Image List]", JSON.stringify(times));
@@ -215,6 +215,18 @@ function urlPngToWebp(url: string) {
   if (url.includes("/webp/") && url.endsWith(".png"))
     return url.replace(/\.png$/, ".webp");
   return url;
+}
+
+function mySubstring(str, start, end) {
+  if (start < 0) start = 0;
+  if (end === undefined || end > str.length) end = str.length;
+  if (start > end) [start, end] = [end, start]; // 交换保证 start <= end
+
+  let result = "";
+  for (let i = start; i < end; i++) {
+    result += str[i];
+  }
+  return result;
 }
 
 console.log(`✅ Server running on http://localhost:${PORT}`);
