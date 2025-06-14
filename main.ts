@@ -64,6 +64,7 @@ async function handleRequest(req: Request): Promise<Response> {
     for (let i = data.value.length - 1; i >= 0; i--) {
       const item = data.value[i];
       const time = item.date[0].substring(0, 8);
+      console.log(JSON.stringify(item.time))
       times.push(...item.time.reverse().map(m => String(time) +""+ String(m) ));
       imageList.push(...item.path.reverse().map((v) => imageUrl + v));
     }
