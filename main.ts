@@ -63,19 +63,17 @@ async function handleRequest(req: Request): Promise<Response> {
     const times:  string[] = [];
     for (let i = data.value.length - 1; i >= 0; i--) {
       const item = data.value[i];
-      const time = String(item.date[0]).substring(0, 8);
-      console.log(time,JSON.stringify(item.date))
-      console.log(JSON.stringify(item.time))
-      times.push(...item.time.reverse().map(m => String(time) +""+ String(m) ));
+      const time = String(item.date[0]);
+      times.push(...item.time.reverse().map(m => String(time) +""+ String(m).substring(2) ));
       imageList.push(...item.path.reverse().map((v) => imageUrl + v));
     }
     console.log("[Image List]", JSON.stringify(times));
     const stime = Number(data["stime"].replace(/\D/g, ""));
     const type = []
-    // for (let s in times){
-    //   const time = Number(times[s].replace(/\D/g, ""));
-    //   type.push(stime>time?1:2)
-    // }
+    for (let s in times){
+      const time = Number(times[s].replace(/\D/g, ""));
+      type.push(stime>time?1:2)
+    }
     const dataParams = {
       rain_dl: {
         time: {
