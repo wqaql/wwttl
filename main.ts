@@ -106,6 +106,7 @@ async function handleRequest(req: Request): Promise<Response> {
 
     // 5. 图片代理 /img/*
     if (pathname.startsWith("/img/")) {
+    console.log(pathname)
       return await handleImageProxy(pathname, cacheKey);
     }
 
@@ -239,7 +240,6 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
   try {
     const encodedUrl = pathname.replace("/img/", "");
     let decodedUrl: string | null = null;
-
     // 1. 先尝试 decodeURIComponent
     try {
       const url = decodeURIComponent(encodedUrl);
