@@ -14,7 +14,6 @@ declare global {
 const PORT = 8000;
 const CACHE_TTL = 5 * 60 * 1000; // 缓存有效期：5分钟
 
-
 // 简单的内存缓存实现
 interface CacheItem<T> {
   data: T;
@@ -131,7 +130,7 @@ async function handleRequest(req: Request): Promise<Response> {
 }
 
 // 处理天气数据
-async function handleWeatherCnData(cacheKey: string, url: URL ): Promise<Response> {
+async function handleWeatherCnData(cacheKey: string,url:URL): Promise<Response> {
   try {
     const res = await fetch("https://m.weathercn.com/weatherMap.do?partner=1000001071_hfaw&language=zh-cn&id=2332685&p_source=&p_type=jump&seadId=&cpoikey=", {
       headers: {
@@ -176,7 +175,7 @@ async function handleWeatherCnData(cacheKey: string, url: URL ): Promise<Respons
 }
 
 // 处理短临降水数据
-async function handleDuanlinData(pathname: string, cacheKey: string, url: URL): Promise<Response> {
+async function handleDuanlinData(pathname: string, cacheKey: string,url:URL): Promise<Response> {
   try {
     const baseUrl = "https://img.weather.com.cn";
     const target = baseUrl + pathname.replace("/duanlin", "/mpfv3");
@@ -267,7 +266,6 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
     // 2. 如果不是合法 URL，再尝试 Base64 解码
     if (!decodedUrl) {
       try {
-        console.log('base64Decode',encodedUrl)
         const base64Decoded = new TextDecoder().decode(decodeBase64(encodedUrl.substring(2)));
         if (
           base64Decoded.startsWith("http://") ||
@@ -275,20 +273,16 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
         ) {
           decodedUrl = base64Decoded;
         }
-      } catch(e) {
-        console.log('decodedUrlErr',e)
+      } catch {
         // 仍无效
       }
     }
 
-    console.log('decodedUrlJy',decodedUrl)
     if (!decodedUrl) {
       return new Response("Invalid image URL", { status: 400 });
     }
-
+    decodedUrl = decodedUrl.split("$$")[0]
     decodedUrl = urlPngToWebp(decodedUrl);
-    console.log('decodedUrl',decodedUrl)
-    console.log('decodedEnd')
     const res = await fetch(decodedUrl, {
       headers: {
         "User-Agent": iPhoneUserAgent,
@@ -397,9 +391,11 @@ function urlPngToWebp(url: string): string {
  * @param imageUrl
  */
 const getProxyImageUrl = (pathName:string,imageUrl: string): string => {
-  const bfStr = stringToBase64(imageUrl)
+
+  const bfStr = stringToBase64(imageUrl+'$$')
   const str = getRandomAZ2() + bfStr
   let url = `${pathName}/img/${str}`
+  console.log(url)
   url = url.startsWith("/") ? url.substring(1) : url;
   return url+str
 };
@@ -408,9 +404,8 @@ const getProxyImageUrl = (pathName:string,imageUrl: string): string => {
  * 字符串转base64
  * @param str
  */
-function stringToBase64(str: string): string {
-  const bytes = new TextEncoder().encode(str);
-  return encodeBase64(bytes)
+function stringToBase64(str:string): string {
+  return encodeBase64(new TextEncoder().encode(str));
 }
 
 function getRandomAZ2() {
@@ -422,6 +417,7 @@ function getRandomAZ2() {
   }
   return result;
 }
+
 
 console.log(`✅ Server running on http://localhost:${PORT}`);
 serve(handleRequest, { port: PORT });
