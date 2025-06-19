@@ -428,15 +428,25 @@ function urlPngToWebp(url: string): string {
  *  获取图片代理地址
  * @param imageUrl
  */
-export const getProxyImageUrl = (pathName:string,imageUrl: string): string => {
-  const bf = encodeBase64(Date.now().toString())
-  const bfStr = encodeBase64(imageUrl)
+const getProxyImageUrl = (pathName:string,imageUrl: string): string => {
+
+  const bf = stringToBase64(Date.now().toString())
+  const bfStr = stringToBase64(imageUrl)
   const str = bf.substring(bf.length - 5, bf.length - 3) + bfStr
   let url = `${pathName}/img/${str}`
   console.log(url)
   url = url.startsWith("/") ? url.substring(1) : url;
   return url+str
 };
+
+/**
+ * 字符串转base64
+ * @param str
+ */
+function stringToBase64(str:string): string {
+  return encodeBase64(new TextEncoder().encode(str));
+}
+
 
 console.log(`✅ Server running on http://localhost:${PORT}`);
 serve(handleRequest, { port: PORT });
