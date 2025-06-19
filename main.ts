@@ -2,7 +2,13 @@
 // @ts-ignore: Deno模块导入
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 // @ts-ignore: Deno模块导入
-import { decodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
+import {encodeBase64, decodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
+// @ts-ignore: ImageMagick模块导入
+import {
+  ImageMagick,
+  initializeImageMagick,
+  MagickFormat,
+} from "https://deno.land/x/imagemagick_deno@0.0.26/mod.ts";
 
 // 为Deno API添加类型声明
 declare global {
@@ -11,8 +17,12 @@ declare global {
   }
 }
 
+// 初始化ImageMagick
+await initializeImageMagick();
+
 const PORT = 8000;
 const CACHE_TTL = 5 * 60 * 1000; // 缓存有效期：5分钟
+const IMAGE_COMPRESSION_QUALITY = 80; // WebP压缩质量 (0-100)
 
 // 简单的内存缓存实现
 interface CacheItem<T> {
@@ -26,13 +36,13 @@ class MemoryCache {
   get<T>(key: string): T | null {
     const item = this.cache.get(key);
     if (!item) return null;
-    
+
     // 检查缓存是否过期
     if (Date.now() - item.timestamp > CACHE_TTL) {
       this.cache.delete(key);
       return null;
     }
-    
+
     return item.data as T;
   }
 
@@ -42,7 +52,7 @@ class MemoryCache {
       timestamp: Date.now()
     });
   }
-  
+
   // 清理过期缓存
   cleanup(): void {
     const now = Date.now();
@@ -69,7 +79,7 @@ async function handleRequest(req: Request): Promise<Response> {
     const url = new URL(req.url);
     const pathname = url.pathname + url.search;
     const cacheKey = `${req.method}:${pathname}`;
-    
+
     // 检查缓存（仅对GET请求）
     if (req.method === "GET") {
       const cachedResponse = cache.get<{body: ArrayBuffer; status: number; headers: Headers}>(cacheKey);
@@ -83,7 +93,7 @@ async function handleRequest(req: Request): Promise<Response> {
 
     // 1. 获取并解析天气数据
     if (pathname === "/weathercn-data/") {
-      return await handleWeatherCnData(cacheKey);
+      return await handleWeatherCnData(cacheKey,url);
     }
 
     // 2. 代理请求：/mpf/*
@@ -94,19 +104,18 @@ async function handleRequest(req: Request): Promise<Response> {
 
     // 3. 特别处理 /duanlin/* 返回加工后的降水图数据
     if (pathname.startsWith("/duanlin/")) {
-      return await handleDuanlinData(pathname, cacheKey);
+      return await handleDuanlinData(pathname, cacheKey,url);
     }
 
     // 4. 小米代理
     if (pathname.startsWith("/wtr-v3/")) {
-      const target = "https://weatherapi.market.xiaomi.com/wtr-v3" + 
+      const target = "https://weatherapi.market.xiaomi.com/wtr-v3" +
         pathname.replace("/wtr-v3", "");
       return await fetchProxyWithCache(req, target, cacheKey);
     }
 
     // 5. 图片代理 /img/*
     if (pathname.startsWith("/img/")) {
-    console.log(pathname)
       return await handleImageProxy(pathname, cacheKey);
     }
 
@@ -130,7 +139,7 @@ async function handleRequest(req: Request): Promise<Response> {
 }
 
 // 处理天气数据
-async function handleWeatherCnData(cacheKey: string): Promise<Response> {
+async function handleWeatherCnData(cacheKey: string, url: URL): Promise<Response> {
   try {
     const res = await fetch("https://m.weathercn.com/weatherMap.do?partner=1000001071_hfaw&language=zh-cn&id=2332685&p_source=&p_type=jump&seadId=&cpoikey=", {
       headers: {
@@ -138,7 +147,7 @@ async function handleWeatherCnData(cacheKey: string): Promise<Response> {
         "Host": "m.weathercn.com",
       },
     });
-    
+
     const html = await res.text();
     const match = html.match(/let\s+DATA\s*=\s*(\{[\s\S]+?\});/);
 
@@ -147,11 +156,17 @@ async function handleWeatherCnData(cacheKey: string): Promise<Response> {
     }
 
     const DATA = new Function(`${match[0]}; return DATA;`)(); // ⚠️ 请确保来源可信
+
+    for (const key in DATA) {
+       const item = DATA[key];
+       for (let i = 0; i < item.result.picture_url.length; i++) {
+         item.result.picture_url[i] = getProxyImageUrl(url.origin,item.result.picture_url[i]);
+       }
+    }
     const response = Response.json(DATA);
-    
     // 缓存响应
     cacheResponse(response.clone(), cacheKey);
-    
+
     return response;
   } catch (err) {
     console.error("Error fetching weather data:", err);
@@ -162,11 +177,11 @@ async function handleWeatherCnData(cacheKey: string): Promise<Response> {
 }
 
 // 处理短临降水数据
-async function handleDuanlinData(pathname: string, cacheKey: string): Promise<Response> {
+async function handleDuanlinData(pathname: string, cacheKey: string,url: URL): Promise<Response> {
   try {
     const baseUrl = "https://img.weather.com.cn";
     const target = baseUrl + pathname.replace("/duanlin", "/mpfv3");
-    
+
     const res = await fetch(target, {
       headers: {
         "User-Agent": iPhoneUserAgent,
@@ -174,34 +189,34 @@ async function handleDuanlinData(pathname: string, cacheKey: string): Promise<Re
         "Host": "weather-img.weathercn.com",
       },
     });
-    
+
     const html = await res.text();
     const data = JSON.parse(html.substring(html.indexOf("{")));
     const imageUrl = baseUrl + "/mpfv3/";
-    
+
     const imageList: string[] = [];
     const times: string[] = [];
-    
+
     for (let i = data.value.length - 1; i >= 0; i--) {
       const item = data.value[i];
       const time = item.date[0].substring(0, 8);
-      
+
       // 修复类型错误
       const reversedTimes = [...item.time].reverse();
       const reversedPaths = [...item.path].reverse();
-      
+
       times.push(...reversedTimes.map(m => time + "" + m));
-      imageList.push(...reversedPaths.map(v => imageUrl + v));
+      imageList.push(...reversedPaths.map(v => getProxyImageUrl(url.origin,imageUrl + v)));
     }
-    
+
     const stime = Number(data["stime"].replace(/\D/g, ""));
     const type: (1 | 2)[] = [];
-    
+
     for (let s = 0; s < times.length; s++) {
       const time = Number(times[s].replace(/\D/g, ""));
       type.push(stime > time ? 1 : 2);
     }
-    
+
     const dataParams = {
       rain_dl: {
         time: {
@@ -222,12 +237,12 @@ async function handleDuanlinData(pathname: string, cacheKey: string): Promise<Re
         pic_type: "precipitation",
       },
     };
-    
+
     const response = Response.json(dataParams);
-    
+
     // 缓存响应
     cacheResponse(response.clone(), cacheKey);
-    
+
     return response;
   } catch (error) {
     console.error("Error processing duanlin data:", error);
@@ -240,6 +255,7 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
   try {
     const encodedUrl = pathname.replace("/img/", "");
     let decodedUrl: string | null = null;
+
     // 1. 先尝试 decodeURIComponent
     try {
       const url = decodeURIComponent(encodedUrl);
@@ -280,17 +296,25 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
     const contentType = res.headers.get("content-type") || "image/png";
     const imageBuffer = await res.arrayBuffer();
 
-    const response = new Response(imageBuffer, {
+    // 对图片进行压缩处理
+    const compressedImageBuffer = await compressImage(
+      new Uint8Array(imageBuffer),
+      contentType
+    );
+
+    const finalContentType = contentType.includes("webp") ? contentType : "image/webp";
+
+    const response = new Response(compressedImageBuffer, {
       status: res.status,
       headers: {
-        "content-type": contentType,
+        "content-type": finalContentType,
         "cache-control": "public, max-age=86400", // 客户端缓存1天
       },
     });
-    
+
     // 缓存响应
     cacheResponse(response.clone(), cacheKey);
-    
+
     return response;
   } catch (error) {
     console.error("Error proxying image:", error);
@@ -298,17 +322,44 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
   }
 }
 
+// 使用ImageMagick压缩图片
+async function compressImage(imageBuffer: Uint8Array, contentType: string): Promise<Uint8Array> {
+  return new Promise<Uint8Array>((resolve) => {
+    ImageMagick.read(imageBuffer, (image) => {
+      // 检查图片是否太大，如果是则调整大小
+      const maxDimension = 2048;
+      if (image.width > maxDimension || image.height > maxDimension) {
+        const ratio = Math.min(
+          maxDimension / image.width,
+          maxDimension / image.height
+        );
+        image.resize(Math.floor(image.width * ratio), Math.floor(image.height * ratio));
+      }
+
+      // 设置压缩参数
+      const compressionOptions = {
+        quality: IMAGE_COMPRESSION_QUALITY, // 0-100
+        lossless: false,                    // 有损压缩
+        effort: 6                           // 压缩努力程度 (0-6)，6最高
+      };
+
+      // 转换为WebP格式并写入
+      image.write(data => resolve(data), MagickFormat.Webp, compressionOptions);
+    });
+  });
+}
+
 // 通用代理函数，带缓存
 async function fetchProxyWithCache(req: Request, target: string, cacheKey: string): Promise<Response> {
   try {
     console.log("fetchProxy", req.method, req.url, target);
     const response = await fetchProxy(req, target);
-    
+
     // 只缓存成功的GET请求
     if (req.method === "GET" && response.ok) {
       cacheResponse(response.clone(), cacheKey);
     }
-    
+
     return response;
   } catch (error) {
     console.error("Proxy error:", error);
@@ -352,10 +403,10 @@ async function cacheResponse(response: Response, key: string): Promise<void> {
   try {
     const body = await response.arrayBuffer();
     const headers = new Headers(response.headers);
-    
+
     // 添加缓存控制头
     headers.set("x-cache-date", new Date().toISOString());
-    
+
     cache.set(key, {
       body,
       status: response.status,
@@ -372,6 +423,20 @@ function urlPngToWebp(url: string): string {
     return url.replace(/\.png$/, ".webp");
   return url;
 }
+
+/**
+ *  获取图片代理地址
+ * @param imageUrl
+ */
+export const getProxyImageUrl = (pathName:string,imageUrl: string): string => {
+  const bf = encodeBase64(Date.now().toString())
+  const bfStr = encodeBase64(imageUrl)
+  const str = bf.substring(bf.length - 5, bf.length - 3) + bfStr
+  let url = `${pathName}/img/${str}`
+  console.log(url)
+  url = url.startsWith("/") ? url.substring(1) : url;
+  return url+str
+};
 
 console.log(`✅ Server running on http://localhost:${PORT}`);
 serve(handleRequest, { port: PORT });
