@@ -270,6 +270,7 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
     if (!decodedUrl) {
       try {
         const base64Decoded = new TextDecoder().decode(decodeBase64(encodedUrl.substring(2)));
+        console.log('decode', base64Decoded)
         if (
           base64Decoded.startsWith("http://") ||
           base64Decoded.startsWith("https://")
