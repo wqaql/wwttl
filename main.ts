@@ -274,11 +274,13 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
         ) {
           decodedUrl = base64Decoded;
         }
-      } catch {
+      } catch(e) {
+        console.log('decodedUrlErr',e)
         // 仍无效
       }
     }
 
+    console.log('decodedUrlJy',decodedUrl)
     if (!decodedUrl) {
       return new Response("Invalid image URL", { status: 400 });
     }
