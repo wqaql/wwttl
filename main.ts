@@ -404,8 +404,12 @@ const getProxyImageUrl = (pathName:string,imageUrl: string): string => {
  * 字符串转base64
  * @param str
  */
-function stringToBase64(str:string): string {
-  return encodeBase64(new TextEncoder().encode(str));
+function stringToBase64(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-') // URL safe
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 }
 
 function getRandomAZ2() {
