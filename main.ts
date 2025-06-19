@@ -283,6 +283,7 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
     }
 
     decodedUrl = urlPngToWebp(decodedUrl);
+    console.log('decodedUrl',decodedUrl)
     const res = await fetch(decodedUrl, {
       headers: {
         "User-Agent": iPhoneUserAgent,
