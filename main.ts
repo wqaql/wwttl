@@ -14,6 +14,7 @@ declare global {
 const PORT = 8000;
 const CACHE_TTL = 5 * 60 * 1000; // 缓存有效期：5分钟
 
+
 // 简单的内存缓存实现
 interface CacheItem<T> {
   data: T;
@@ -396,7 +397,7 @@ function urlPngToWebp(url: string): string {
  * @param imageUrl
  */
 const getProxyImageUrl = (pathName:string,imageUrl: string): string => {
-  const bfStr = stringToBase64(imageUrl+'.zip')
+  const bfStr = stringToBase64(imageUrl)
   const str = getRandomAZ2() + bfStr
   let url = `${pathName}/img/${str}`
   url = url.startsWith("/") ? url.substring(1) : url;
