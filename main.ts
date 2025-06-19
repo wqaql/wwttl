@@ -396,7 +396,7 @@ function urlPngToWebp(url: string): string {
  * @param imageUrl
  */
 const getProxyImageUrl = (pathName:string,imageUrl: string): string => {
-  const bfStr = stringToBase64(imageUrl+'$$')
+  const bfStr = stringToBase64(imageUrl+'【')
   const str = getRandomAZ2() + bfStr
   let url = `${pathName}/img/${str}`
   url = url.startsWith("/") ? url.substring(1) : url;
