@@ -107,7 +107,7 @@ async function handleRequest(req: Request): Promise<Response> {
     // 5. 图片代理 /img/*
     if (pathname.startsWith("/img/")) {
       console.log(pathname)
-      return await handleImageProxy(pathname, cacheKey);
+      return await handleImageProxy(pathname, cacheKey, url);
     }
 
     // 6. d3代理
@@ -249,7 +249,7 @@ async function handleDuanlinData(pathname: string, cacheKey: string,url:URL): Pr
 }
 
 // 处理图片代理
-async function handleImageProxy(pathname: string, cacheKey: string): Promise<Response> {
+async function handleImageProxy(pathname: string, cacheKey: string,url:URL): Promise<Response> {
   try {
     const encodedUrl = pathname.replace("/img/", "");
     let decodedUrl: string | null = null;
@@ -266,7 +266,10 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
     // 2. 如果不是合法 URL，再尝试 Base64 解码
     if (!decodedUrl) {
       try {
-        const base64Decoded = new TextDecoder().decode(decodeBase64(encodedUrl.substring(2)));
+        let base64Decoded = new TextDecoder().decode(decodeBase64(encodedUrl.substring(2)));
+        if (base64Decoded.includes(url.pathname)) {
+          base64Decoded = new TextDecoder().decode(decodeBase64(base64Decoded.split("/img/")[1].substring(2)))
+        }
         if (
           base64Decoded.startsWith("http://") ||
           base64Decoded.startsWith("https://")
