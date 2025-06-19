@@ -406,7 +406,7 @@ const getProxyImageUrl = (pathName:string,imageUrl: string): string => {
  */
 function stringToBase64(str: string): string {
   const bytes = new TextEncoder().encode(str);
-  return bytes
+  return encodeBase64(bytes)
 }
 
 function getRandomAZ2() {
