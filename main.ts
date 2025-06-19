@@ -14,6 +14,12 @@ declare global {
 const PORT = 8000;
 const CACHE_TTL = 5 * 60 * 1000; // 缓存有效期：5分钟
 
+const domains = [
+  'https://wqaql-wwttl-51.deno.dev',
+  'https://wqaql-wwttl-49.deno.dev',
+  'https://wqaql-wwttl-78.deno.dev'
+];
+
 // 简单的内存缓存实现
 interface CacheItem<T> {
   data: T;
@@ -268,7 +274,7 @@ async function handleImageProxy(pathname: string, cacheKey: string,url:URL): Pro
       try {
         let base64Decoded = new TextDecoder().decode(decodeBase64(encodedUrl.substring(2)));
         console.log("one:"+ base64Decoded)
-        if (base64Decoded.startsWith(url.origin)) {
+        if (base64Decoded.startsWith("https://wqaql-wwttl")) {
           const two = base64Decoded.split("/img/")[1].substring(2)
           base64Decoded = new TextDecoder().decode(decodeBase64(two))
           console.log("two:",two, base64Decoded)
@@ -397,7 +403,7 @@ function urlPngToWebp(url: string): string {
  * @param imageUrl
  */
 const getProxyImageUrl = (pathName:string,imageUrl: string): string => {
-
+  pathName = domains[Math.floor(Math.random() * domains.length)];
   const bfStr = stringToBase64(imageUrl)
   const str = getRandomAZ2() + bfStr
   let url = `${pathName}/img/${str}`
