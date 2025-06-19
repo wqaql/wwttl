@@ -266,6 +266,7 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
     // 2. 如果不是合法 URL，再尝试 Base64 解码
     if (!decodedUrl) {
       try {
+        console.log('base64Decode',encodedUrl)
         const base64Decoded = new TextDecoder().decode(decodeBase64(encodedUrl.substring(2)));
         if (
           base64Decoded.startsWith("http://") ||
