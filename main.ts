@@ -4,7 +4,6 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 // @ts-ignore: Deno模块导入
 import {encodeBase64, decodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 
-
 // 为Deno API添加类型声明
 declare global {
   interface ResponseConstructor {
@@ -12,10 +11,8 @@ declare global {
   }
 }
 
-
 const PORT = 8000;
 const CACHE_TTL = 5 * 60 * 1000; // 缓存有效期：5分钟
-const IMAGE_COMPRESSION_QUALITY = 80; // WebP压缩质量 (0-100)
 
 // 简单的内存缓存实现
 interface CacheItem<T> {
@@ -109,6 +106,7 @@ async function handleRequest(req: Request): Promise<Response> {
 
     // 5. 图片代理 /img/*
     if (pathname.startsWith("/img/")) {
+      console.log(pathname)
       return await handleImageProxy(pathname, cacheKey);
     }
 
@@ -132,7 +130,7 @@ async function handleRequest(req: Request): Promise<Response> {
 }
 
 // 处理天气数据
-async function handleWeatherCnData(cacheKey: string, url: URL): Promise<Response> {
+async function handleWeatherCnData(cacheKey: string, url: URL ): Promise<Response> {
   try {
     const res = await fetch("https://m.weathercn.com/weatherMap.do?partner=1000001071_hfaw&language=zh-cn&id=2332685&p_source=&p_type=jump&seadId=&cpoikey=", {
       headers: {
@@ -149,21 +147,21 @@ async function handleWeatherCnData(cacheKey: string, url: URL): Promise<Response
     }
 
     const DATA = new Function(`${match[0]}; return DATA;`)(); // ⚠️ 请确保来源可信
-
     for (const key in DATA) {
-       const item = DATA[key];
-       if (item.pic!=null) {
-         for (let i = 0; i < item.pic.length; i++) {
-           item.pic[i] = getProxyImageUrl(url.origin,item.pic[i]);
-         }
-       }else {
-         for (let i = 0; i < item.result.picture_url.length; i++) {
-           item.result.picture_url[i] = getProxyImageUrl(url.origin,item.result.picture_url[i]);
-         }
-       }
-    
+      const item = DATA[key];
+      if (item.pic!=null) {
+        for (let i = 0; i < item.pic.length; i++) {
+          item.pic[i] = getProxyImageUrl(url.origin,item.pic[i]);
+        }
+      }else {
+        for (let i = 0; i < item.result.picture_url.length; i++) {
+          item.result.picture_url[i] = getProxyImageUrl(url.origin,item.result.picture_url[i]);
+        }
+      }
+
     }
     const response = Response.json(DATA);
+
     // 缓存响应
     cacheResponse(response.clone(), cacheKey);
 
@@ -177,7 +175,7 @@ async function handleWeatherCnData(cacheKey: string, url: URL): Promise<Response
 }
 
 // 处理短临降水数据
-async function handleDuanlinData(pathname: string, cacheKey: string,url: URL): Promise<Response> {
+async function handleDuanlinData(pathname: string, cacheKey: string, url: URL): Promise<Response> {
   try {
     const baseUrl = "https://img.weather.com.cn";
     const target = baseUrl + pathname.replace("/duanlin", "/mpfv3");
@@ -255,7 +253,6 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
   try {
     const encodedUrl = pathname.replace("/img/", "");
     let decodedUrl: string | null = null;
-
     // 1. 先尝试 decodeURIComponent
     try {
       const url = decodeURIComponent(encodedUrl);
@@ -270,7 +267,6 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
     if (!decodedUrl) {
       try {
         const base64Decoded = new TextDecoder().decode(decodeBase64(encodedUrl.substring(2)));
-        console.log('decode', base64Decoded)
         if (
           base64Decoded.startsWith("http://") ||
           base64Decoded.startsWith("https://")
@@ -297,13 +293,10 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
     const contentType = res.headers.get("content-type") || "image/png";
     const imageBuffer = await res.arrayBuffer();
 
-
-    const finalContentType = contentType.includes("webp") ? contentType : "image/webp";
-
     const response = new Response(imageBuffer, {
       status: res.status,
       headers: {
-        "content-type": finalContentType,
+        "content-type": contentType,
         "cache-control": "public, max-age=86400", // 客户端缓存1天
       },
     });
@@ -317,7 +310,6 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
     return new Response(`Error proxying image: ${error.message}`, { status: 500 });
   }
 }
-
 
 // 通用代理函数，带缓存
 async function fetchProxyWithCache(req: Request, target: string, cacheKey: string): Promise<Response> {
@@ -416,7 +408,6 @@ const getProxyImageUrl = (pathName:string,imageUrl: string): string => {
 function stringToBase64(str:string): string {
   return encodeBase64(new TextEncoder().encode(str));
 }
-
 
 console.log(`✅ Server running on http://localhost:${PORT}`);
 serve(handleRequest, { port: PORT });
