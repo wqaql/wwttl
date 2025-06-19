@@ -152,9 +152,16 @@ async function handleWeatherCnData(cacheKey: string, url: URL): Promise<Response
 
     for (const key in DATA) {
        const item = DATA[key];
-       for (let i = 0; i < item.result.picture_url.length; i++) {
-         item.result.picture_url[i] = getProxyImageUrl(url.origin,item.result.picture_url[i]);
+       if (item.pic!=null) {
+         for (let i = 0; i < item.pic.length; i++) {
+           item.pic[i] = getProxyImageUrl(url.origin,item.pic[i]);
+         }
+       }else {
+         for (let i = 0; i < item.result.picture_url.length; i++) {
+           item.result.picture_url[i] = getProxyImageUrl(url.origin,item.result.picture_url[i]);
+         }
        }
+    
     }
     const response = Response.json(DATA);
     // 缓存响应
