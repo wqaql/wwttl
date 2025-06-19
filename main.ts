@@ -284,6 +284,7 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
 
     decodedUrl = urlPngToWebp(decodedUrl);
     console.log('decodedUrl',decodedUrl)
+    console.log('decodedEnd')
     const res = await fetch(decodedUrl, {
       headers: {
         "User-Agent": iPhoneUserAgent,
@@ -392,12 +393,9 @@ function urlPngToWebp(url: string): string {
  * @param imageUrl
  */
 const getProxyImageUrl = (pathName:string,imageUrl: string): string => {
-
-  const bf = stringToBase64(Date.now().toString())
   const bfStr = stringToBase64(imageUrl)
-  const str = bf.substring(bf.length - 5, bf.length - 3) + bfStr
+  const str = getRandomAZ2() + bfStr
   let url = `${pathName}/img/${str}`
-  console.log(url)
   url = url.startsWith("/") ? url.substring(1) : url;
   return url+str
 };
@@ -408,6 +406,16 @@ const getProxyImageUrl = (pathName:string,imageUrl: string): string => {
  */
 function stringToBase64(str:string): string {
   return encodeBase64(new TextEncoder().encode(str));
+}
+
+function getRandomAZ2() {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let result = '';
+  for (let i = 0; i < 2; i++) {
+    const idx = Math.floor(Math.random() * chars.length);
+    result += chars[idx];
+  }
+  return result;
 }
 
 console.log(`✅ Server running on http://localhost:${PORT}`);
