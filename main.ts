@@ -393,12 +393,12 @@ function urlPngToWebp(url: string): string {
  */
 const getProxyImageUrl = (pathName:string,imageUrl: string): string => {
 
-  const bfStr = stringToBase64(imageUrl+'$$')
+  const bfStr = stringToBase64(imageUrl)
   const str = getRandomAZ2() + bfStr
   let url = `${pathName}/img/${str}`
   console.log(url)
   url = url.startsWith("/") ? url.substring(1) : url;
-  return url+str
+  return url
 };
 
 /**
