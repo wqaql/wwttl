@@ -3,12 +3,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 // @ts-ignore: Deno模块导入
 import {encodeBase64, decodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
-// @ts-ignore: ImageMagick模块导入
-import {
-  ImageMagick,
-  initializeImageMagick,
-  MagickFormat,
-} from "https://deno.land/x/imagemagick_deno@0.0.26/mod.ts";
+
 
 // 为Deno API添加类型声明
 declare global {
@@ -17,8 +12,6 @@ declare global {
   }
 }
 
-// 初始化ImageMagick
-await initializeImageMagick();
 
 const PORT = 8000;
 const CACHE_TTL = 5 * 60 * 1000; // 缓存有效期：5分钟
@@ -296,15 +289,10 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
     const contentType = res.headers.get("content-type") || "image/png";
     const imageBuffer = await res.arrayBuffer();
 
-    // 对图片进行压缩处理
-    const compressedImageBuffer = await compressImage(
-      new Uint8Array(imageBuffer),
-      contentType
-    );
 
     const finalContentType = contentType.includes("webp") ? contentType : "image/webp";
 
-    const response = new Response(compressedImageBuffer, {
+    const response = new Response(imageBuffer, {
       status: res.status,
       headers: {
         "content-type": finalContentType,
@@ -322,32 +310,6 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
   }
 }
 
-// 使用ImageMagick压缩图片
-async function compressImage(imageBuffer: Uint8Array, contentType: string): Promise<Uint8Array> {
-  return new Promise<Uint8Array>((resolve) => {
-    ImageMagick.read(imageBuffer, (image) => {
-      // 检查图片是否太大，如果是则调整大小
-      const maxDimension = 2048;
-      if (image.width > maxDimension || image.height > maxDimension) {
-        const ratio = Math.min(
-          maxDimension / image.width,
-          maxDimension / image.height
-        );
-        image.resize(Math.floor(image.width * ratio), Math.floor(image.height * ratio));
-      }
-
-      // 设置压缩参数
-      const compressionOptions = {
-        quality: IMAGE_COMPRESSION_QUALITY, // 0-100
-        lossless: false,                    // 有损压缩
-        effort: 6                           // 压缩努力程度 (0-6)，6最高
-      };
-
-      // 转换为WebP格式并写入
-      image.write(data => resolve(data), MagickFormat.Webp, compressionOptions);
-    });
-  });
-}
 
 // 通用代理函数，带缓存
 async function fetchProxyWithCache(req: Request, target: string, cacheKey: string): Promise<Response> {
