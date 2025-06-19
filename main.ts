@@ -281,6 +281,7 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
     if (!decodedUrl) {
       return new Response("Invalid image URL", { status: 400 });
     }
+    decodedUrl = decodedUrl.split('$$');
     decodedUrl = urlPngToWebp(decodedUrl);
     const res = await fetch(decodedUrl, {
       headers: {
