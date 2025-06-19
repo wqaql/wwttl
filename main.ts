@@ -393,7 +393,7 @@ function urlPngToWebp(url: string): string {
  * @param imageUrl
  */
 const getProxyImageUrl = (pathName:string,imageUrl: string): string => {
-  const bfStr = stringToBase64(imageUrl)
+  const bfStr = stringToBase64(encodeURIComponent(imageUrl))
   const str = getRandomAZ2() + bfStr
   let url = `${pathName}/img/${str}`
   url = url.startsWith("/") ? url.substring(1) : url;
@@ -406,10 +406,7 @@ const getProxyImageUrl = (pathName:string,imageUrl: string): string => {
  */
 function stringToBase64(str: string): string {
   const bytes = new TextEncoder().encode(str);
-  return btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, '-') // URL safe
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+  return bytes
 }
 
 function getRandomAZ2() {
