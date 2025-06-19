@@ -267,8 +267,11 @@ async function handleImageProxy(pathname: string, cacheKey: string,url:URL): Pro
     if (!decodedUrl) {
       try {
         let base64Decoded = new TextDecoder().decode(decodeBase64(encodedUrl.substring(2)));
-        if (base64Decoded.includes(url.pathname)) {
-          base64Decoded = new TextDecoder().decode(decodeBase64(base64Decoded.split("/img/")[1].substring(2)))
+        console.log("one:"+ base64Decoded)
+        if (base64Decoded.startsWith(url.origin)) {
+          const two = base64Decoded.split("/img/")[1].substring(2)
+          base64Decoded = new TextDecoder().decode(decodeBase64(two))
+          console.log("two:",two, base64Decoded)
         }
         if (
           base64Decoded.startsWith("http://") ||
