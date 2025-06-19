@@ -282,6 +282,7 @@ async function handleImageProxy(pathname: string, cacheKey: string): Promise<Res
       return new Response("Invalid image URL", { status: 400 });
     }
     decodedUrl = decodedUrl.split('$$');
+    console.log(decodedUrl)
     decodedUrl = urlPngToWebp(decodedUrl);
     const res = await fetch(decodedUrl, {
       headers: {
@@ -394,8 +395,7 @@ const getProxyImageUrl = (pathName:string,imageUrl: string): string => {
 
   const bfStr = stringToBase64(imageUrl+'$$')
   const str = getRandomAZ2() + bfStr
-  const sp = str.split("=")
-  let url = `${pathName}/img/${sp[0]}`
+  let url = `${pathName}/img/str`
   console.log(url)
   url = url.startsWith("/") ? url.substring(1) : url;
   return url+str
